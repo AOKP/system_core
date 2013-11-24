@@ -7,6 +7,11 @@ LOCAL_PATH := $(call my-dir)
 ifneq ($(USE_DEVICE_SPECIFIC_LIBHEALTHD),true)
 
 include $(CLEAR_VARS)
+
+ifneq ($(strip $(HEALTHD_CHATTY_MODE)),true)
+    LOCAL_CFLAGS += -DHEALTHD_SILENCE_LOG
+endif
+
 LOCAL_SRC_FILES := healthd_board_default.cpp
 LOCAL_MODULE := libhealthd.default
 include $(BUILD_STATIC_LIBRARY)
