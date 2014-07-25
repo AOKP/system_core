@@ -1841,6 +1841,7 @@ int sdcard_main(int argc, char **argv)
     bool split_perms = false;
     int i;
     struct rlimit rlim;
+    int fs_version;
 
     int opt;
     while ((opt = getopt(argc, argv, "u:g:w:t:dls")) != -1) {
@@ -1913,6 +1914,11 @@ int sdcard_main(int argc, char **argv)
     rlim.rlim_max = 8192;
     if (setrlimit(RLIMIT_NOFILE, &rlim)) {
         ERROR("Error setting RLIMIT_NOFILE, errno = %d\n", errno);
+    }
+
+    while ((fs_read_atomic_int("/data/.layout_version", &fs_version) == -1) || (fs_version < 3)) {
+        ERROR("installd fs upgrade not yet complete. Waiting...\n");
+        sleep(1);
     }
 
     res = run(source_path, dest_path, uid, gid, write_gid, num_threads, derive, split_perms);
