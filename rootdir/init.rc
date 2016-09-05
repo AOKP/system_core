@@ -10,8 +10,8 @@ import /init.${ro.hardware}.rc
 import /init.usb.configfs.rc
 import /init.${ro.zygote}.rc
 
-# Include CM's extra init file
-import /init.cm.rc
+# Include AOKP's extra init file
+import /init.aokp.rc
 
 
 on early-init
