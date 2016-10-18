@@ -29,7 +29,9 @@
 #include <sys/socket.h>
 #include <sys/mount.h>
 #include <sys/resource.h>
+#ifndef NO_FINIT_MODULE
 #include <sys/syscall.h>
+#endif
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -69,20 +71,34 @@ using android::base::StringPrintf;
 #define UNMOUNT_CHECK_MS 5000
 #define UNMOUNT_CHECK_TIMES 10
 
+#ifdef NO_FINIT_MODULE
+// System call provided by bionic but not in any header file.
+extern "C" int init_module(void *, unsigned long, const char *);
+#endif
+
 static const int kTerminateServiceDelayMicroSeconds = 50000;
 
 static int insmod(const char *filename, const char *options) {
+#ifndef NO_FINIT_MODULE
     int fd = open(filename, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
     if (fd == -1) {
         ERROR("insmod: open(\"%s\") failed: %s", filename, strerror(errno));
+#else
+    std::string module;
+    if (!read_file(filename, &module)) {
+#endif
         return -1;
     }
+#ifndef NO_FINIT_MODULE
     int rc = syscall(__NR_finit_module, fd, options, 0);
     if (rc == -1) {
         ERROR("finit_module for \"%s\" failed: %s", filename, strerror(errno));
     }
     close(fd);
     return rc;
+#else
+    return init_module(&module[0], module.size(), options);
+#endif
 }
 
 static int __ifupdown(const char *interface, int up) {
@@ -566,6 +582,12 @@ static int do_mount_all(const std::vector<std::string>& args) {
 
     /* Paths of .rc files are specified at the 2nd argument and beyond */
     import_late(args, 2);
+
+    std::string bootmode = property_get("ro.bootmode");
+    if (strncmp(bootmode.c_str(), "ffbm", 4) == 0) {
+        NOTICE("ffbm mode, not start class main\n");
+        return 0;
+    }
 
     if (ret == FS_MGR_MNTALL_DEV_NEEDS_ENCRYPTION) {
         ActionManager::GetInstance().QueueEventTrigger("encrypt");
