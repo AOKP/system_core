@@ -86,7 +86,7 @@ static bool should_drop_privileges() {
     // Drop privileges if ro.secure is set...
     bool drop = ro_secure;
 
-    property_get("service.adb.root", value, "");
+    property_get("cm.service.adb.root", value, "");
     bool adb_root = (strcmp(value, "1") == 0);
     bool adb_unroot = (strcmp(value, "0") == 0);
 
